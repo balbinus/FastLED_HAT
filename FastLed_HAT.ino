@@ -6,6 +6,19 @@ FASTLED_USING_NAMESPACE
 #warning "Requires FastLED 3.1 or later; check github for latest code."
 #endif
 
+/**
+ * Connections on Adafruit Gemma v2:
+ * 
+ *  – D0 = APA102 LED CLOCK
+ *  – D1 = APA102 LED DATA
+ *          (+ D1 LED on board, hence the use for data i/o clock,
+ *          because at startup time the pin is used for PWM, which
+ *           is then interpreted as a stream of ones by the LEDs…)
+ *  – D2/A1 = ADC IN for the two buttons (see below).
+ *  – GND connects to the LEDs, and the buttons.
+ *  – 3VOUT connects to the LEDs, and through a same-value resistor,
+ *          to D2/A1.
+ */
 #if defined(__AVR_ATtiny85__)
     #define DATA_PIN        1
     #define CLK_PIN         0
@@ -36,14 +49,14 @@ void pattern_switch();
 
 typedef void (*SimplePatternList[])();
 SimplePatternList gPatterns = {
-    pattern_solid,
-    pattern_breathe,
-    pattern_flash_slow,
-    pattern_flash_fast,
-    pattern_weave,
-    pattern_switch,
-    pattern_rainbow,
-    pattern_rainbow
+    pattern_solid,          // 0 = solid color
+    pattern_breathe,        // 1 = breathing pattern (cubic wave)
+    pattern_flash_slow,     // 2 = flash, slowly
+    pattern_flash_fast,     // 3 = flash, faster
+    pattern_weave,          // 4 = alternate between two hues (2 x cubic wave, antiphase)
+    pattern_switch,         // 5 = alternate between two hues, flashing from one to the next
+    pattern_rainbow,        // 6 = ???
+    pattern_rainbow         // 7 = rainbooowww ♥️🌈
 };
 
 /** Colors **/
@@ -59,6 +72,7 @@ SimpleColorList gColors = {
     CRGB::White * .6,       // 7 = White
 };
 
+/** Current state **/
 uint8_t gCurrentColorNumber = 0;    // Index number of which color is current
 uint8_t gCurrentPatternNumber = 0;  // Index number of which pattern is current
 uint8_t gHue = 0;                   // rotating "base color" used by many of the patterns
@@ -119,21 +133,60 @@ static inline void nextPattern()
     gCurrentPatternNumber = (gCurrentPatternNumber + 1) % ARRAY_SIZE(gPatterns);
 }
 
+/**
+ * Reading two buttons from one ADC pin:
+ * 
+ *          +3V3
+ *
+ *            +
+ *            |
+ *           +-+
+ *           | |
+ *     100k  | |
+ *           | |
+ *           +-+
+ *            |
+ *            +-----------+  ADC IN
+ *            |
+ *           +-+
+ *           | |
+ *     100k  | |
+ *           | |
+ *           +-+
+ *            |
+ *            +-----------+
+ *            |           |
+ *            |          +-+
+ *            |          | |
+ *            |    100k  | |
+ *            |          | |
+ *            |          +-+
+ *            |           |
+ *            \           \
+ *       K1    \     K2    \
+ *              \           \
+ *            |           |
+ *            +-----------+
+ *            |
+ *            +
+ *
+ *           GND
+ */
 static inline void readButtons()
 {
     // read the analog in value:
     uint16_t sensorValue = analogRead(BTN_PIN);
 
     uint8_t new_state = 0xFF;
-    if (sensorValue > 1013)
+    if (sensorValue > 1013) // Nominally, 0x3FF (1023)
     {
         new_state = 0;
     }
-    else if (sensorValue > 502 && sensorValue < 522)
+    else if (sensorValue > 502 && sensorValue < 522) // nom: 0x1FF (511)
     {
         new_state = 1;
     }
-    else if (sensorValue > 672 && sensorValue < 692)
+    else if (sensorValue > 672 && sensorValue < 692) // nom: 0x2AA (682)
     {
         new_state = 2;
     }
