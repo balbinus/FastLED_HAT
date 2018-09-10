@@ -77,9 +77,10 @@ SimplePatternList gPatterns = {
     pattern_rainbow
 };
 
-uint8_t gCurrentColorNumber = 0; // Index number of which color is current
-uint8_t gCurrentPatternNumber = 0; // Index number of which pattern is current
-uint8_t gHue = 0; // rotating "base color" used by many of the patterns
+uint8_t gCurrentColorNumber = 0;    // Index number of which color is current
+uint8_t gCurrentPatternNumber = 0;  // Index number of which pattern is current
+uint8_t gHue = 0;                   // rotating "base color" used by many of the patterns
+uint8_t last_state = 0;             // input buttons state
 
 /******************************************************************************/
 /*                                                                            */
@@ -106,7 +107,6 @@ void setup()
 /*                                  LOOP                                      */
 /*                                                                            */
 /******************************************************************************/
-uint8_t last_state = 0;
 void loop()
 {
     // Call the current pattern function once, updating the 'leds' array
@@ -123,50 +123,55 @@ void loop()
         // slowly cycle the "base color" through the rainbow
         gHue++;
         
-        // read the analog in value:
-        uint16_t sensorValue = analogRead(A1);
-
-        uint8_t new_state = 0xFF;
-        if (sensorValue > 1013)
-        {
-            new_state = 0;
-        }
-        else if (sensorValue > 502 && sensorValue < 522)
-        {
-            new_state = 1;
-        }
-        else if (sensorValue > 672 && sensorValue < 692)
-        {
-            new_state = 2;
-        }
-
-        if (new_state != 0xFF && new_state != last_state)
-        {
-            if (new_state == 1)
-            {
-                nextColor();
-            }
-            else if (new_state == 2)
-            {
-                nextPattern();
-            }
-            last_state = new_state;
-        }
+        // read the physical buttons
+        readButtons();
     }
-    //~ EVERY_N_SECONDS(10)      { nextColor(); } // change patterns periodically
-    //~ EVERY_N_SECONDS(45)      { nextPattern(); } // change patterns periodically
 }
 
 #define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
-void nextColor()
+static inline void nextColor()
 {
     // add one to the current pattern number, and wrap around at the end
     gCurrentColorNumber = (gCurrentColorNumber + 1) % ARRAY_SIZE(gColors);
 }
-void nextPattern()
+
+static inline void nextPattern()
 {
     // add one to the current pattern number, and wrap around at the end
     gCurrentPatternNumber = (gCurrentPatternNumber + 1) % ARRAY_SIZE(gPatterns);
+}
+
+static inline void readButtons()
+{
+    // read the analog in value:
+    uint16_t sensorValue = analogRead(A1);
+
+    uint8_t new_state = 0xFF;
+    if (sensorValue > 1013)
+    {
+        new_state = 0;
+    }
+    else if (sensorValue > 502 && sensorValue < 522)
+    {
+        new_state = 1;
+    }
+    else if (sensorValue > 672 && sensorValue < 692)
+    {
+        new_state = 2;
+    }
+
+    if (new_state != 0xFF && new_state != last_state)
+    {
+        if (new_state == 1)
+        {
+            nextColor();
+        }
+        else if (new_state == 2)
+        {
+            nextPattern();
+        }
+        last_state = new_state;
+    }
 }
 
 /******************************************************************************/
