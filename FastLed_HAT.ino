@@ -73,10 +73,12 @@ SimpleColorList gColors = {
 };
 
 /** Current state **/
-uint8_t gCurrentColorNumber = 0;    // Index number of which color is current
-uint8_t gCurrentPatternNumber = 0;  // Index number of which pattern is current
-uint8_t gHue = 0;                   // rotating "base color" used by many of the patterns
-uint8_t gLastState = 0;             // input buttons state
+struct {
+    uint8_t color   = 0;    // index number of which color is current
+    uint8_t pattern = 0;    // index number of which pattern is current
+    uint8_t hue     = 0;    // rotating "base color" used by many of the patterns
+    uint8_t buttons = 0;    // input buttons state
+} gState;
 
 /******************************************************************************/
 /*                                                                            */
@@ -102,19 +104,20 @@ void setup()
 void loop()
 {
     // Call the current pattern function once, updating the 'leds' array
-    gPatterns[gCurrentPatternNumber]();
+    gPatterns[gState.pattern]();
 
     // send the 'leds' array out to the actual LED strip
-    FastLED.show();  
+    FastLED.show();
+    
     // insert a delay to keep the framerate modest
-    FastLED.delay(1000/FRAMES_PER_SECOND); 
+    FastLED.delay(1000/FRAMES_PER_SECOND);
 
     // do some periodic updates
     EVERY_N_MILLISECONDS(10)
     {
         // slowly cycle the "base color" through the rainbow
-        gHue++;
-        
+        gState.hue++;
+
         // read the physical buttons
         readButtons();
     }
@@ -124,13 +127,13 @@ void loop()
 static inline void nextColor()
 {
     // add one to the current pattern number, and wrap around at the end
-    gCurrentColorNumber = (gCurrentColorNumber + 1) % ARRAY_SIZE(gColors);
+    gState.color = (gState.color + 1) % ARRAY_SIZE(gColors);
 }
 
 static inline void nextPattern()
 {
     // add one to the current pattern number, and wrap around at the end
-    gCurrentPatternNumber = (gCurrentPatternNumber + 1) % ARRAY_SIZE(gPatterns);
+    gState.pattern = (gState.pattern + 1) % ARRAY_SIZE(gPatterns);
 }
 
 /**
@@ -191,7 +194,7 @@ static inline void readButtons()
         new_state = 2;
     }
 
-    if (new_state != 0xFF && new_state != gLastState)
+    if (new_state != 0xFF && new_state != gState.buttons)
     {
         if (new_state == 1)
         {
@@ -201,7 +204,7 @@ static inline void readButtons()
         {
             nextPattern();
         }
-        gLastState = new_state;
+        gState.buttons = new_state;
     }
 }
 
@@ -212,41 +215,39 @@ static inline void readButtons()
 /******************************************************************************/
 void pattern_rainbow()
 {
-    leds[LED1] = CHSV(gHue, 0xFF, 0xFF);
-    leds[LED2] = CHSV(gHue + 0xFF/4, 0xFF, 0xFF);
+    leds[LED1] = CHSV(gState.hue, 0xFF, 0xFF);
+    leds[LED2] = CHSV(gState.hue + 0xFF/4, 0xFF, 0xFF);
 }
 
 void pattern_solid()
 {
-    leds[LED1] = leds[LED2] = gColors[gCurrentColorNumber];
+    leds[LED1] = leds[LED2] = gColors[gState.color];
 }
 
 void pattern_flash_slow()
 {
-    leds[LED1] = leds[LED2] = (gHue & 0x80) ? gColors[gCurrentColorNumber] : (CRGB) 0;
+    leds[LED1] = leds[LED2] = (gState.hue & 0x80) ? gColors[gState.color] : (CRGB) 0;
 }
 
 void pattern_flash_fast()
 {
-    leds[LED1] = leds[LED2] = (gHue & 0x10) ? gColors[gCurrentColorNumber] : (CRGB) 0;
+    leds[LED1] = leds[LED2] = (gState.hue & 0x10) ? gColors[gState.color] : (CRGB) 0;
 }
 
 void pattern_breathe()
 {
-    leds[LED1] = leds[LED2] = gColors[gCurrentColorNumber];
-    leds[LED1].nscale8_video(cubicwave8(gHue));
-    leds[LED2].nscale8_video(cubicwave8(gHue));
+    leds[LED1] = gColors[gState.color];
+    leds[LED1].nscale8_video(cubicwave8(gState.hue));
+    leds[LED2] = leds[LED1];
 }
 
 void pattern_weave()
 {
-    leds[LED1] = gColors[gCurrentColorNumber];
-    leds[LED2] = gColors[(gCurrentColorNumber + 1) % ARRAY_SIZE(gColors)];
-    leds[LED1].nscale8(cubicwave8(gHue));
-    leds[LED2].nscale8(cubicwave8(gHue + 0xFF/2));
+    leds[LED1] = gColors[gState.color].nscale8(cubicwave8(gState.hue));
+    leds[LED2] = gColors[(gState.color + 1) % ARRAY_SIZE(gColors)].nscale8(cubicwave8(gState.hue + 0xFF/2));
 }
 
 void pattern_switch()
 {
-    leds[LED1] = leds[LED2] = (gHue & 0x80) ? gColors[gCurrentColorNumber] : gColors[(gCurrentColorNumber + 1) % ARRAY_SIZE(gColors)];
+    leds[LED1] = leds[LED2] = (gState.hue & 0x80) ? gColors[gState.color] : gColors[(gState.color + 1) % ARRAY_SIZE(gColors)];
 }
