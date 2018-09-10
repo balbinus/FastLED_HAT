@@ -2,47 +2,28 @@
 
 FASTLED_USING_NAMESPACE
 
-// to enable testing on SK6812 RGBW (unsupported officially)
-// #define LED_HACK 1
-
 #if defined(FASTLED_VERSION) && (FASTLED_VERSION < 3001000)
 #warning "Requires FastLED 3.1 or later; check github for latest code."
 #endif
 
-#ifdef LED_HACK
-    #if defined(__AVR_ATmega2560__)
-        #define DATA_PIN    6
-    #elif defined(__AVR_ATtiny85__)
-        #define DATA_PIN    2
-    #else
-        #error NO DATA PIN
-    #endif
-    #define LED_TYPE    SK6812
-    #define COLOR_ORDER GRB
-    #define NUM_LEDS    16
-    #define LED1        0
-    #define LED2        12
+#if defined(__AVR_ATtiny85__)
+    #define DATA_PIN        1
+    #define CLK_PIN         0
+    #define BTN_PIN         A1
 #else
-    #if defined(__AVR_ATmega2560__)
-        #define DATA_PIN    6
-        #define CLK_PIN     7
-    #elif defined(__AVR_ATtiny85__)
-        #define DATA_PIN    1
-        #define CLK_PIN     0
-    #else
-        #error NO DATA PIN
-    #endif
-    #define LED_TYPE    APA102
-    #define COLOR_ORDER BGR
-    #define NUM_LEDS    2
-    #define LED1        0
-    #define LED2        1
+    #error NO DATA PIN
 #endif
+#define LED_TYPE            APA102
+#define COLOR_ORDER         BGR
+#define NUM_LEDS            2
+#define LED1                0
+#define LED2                1
 
+#define BRIGHTNESS          0xFF
+#define FRAMES_PER_SECOND   120
+
+/** LEDs **/
 CRGB leds[NUM_LEDS];
-
-#define BRIGHTNESS         0xFF
-#define FRAMES_PER_SECOND  120
 
 /** Patterns **/
 void pattern_rainbow();
@@ -53,18 +34,6 @@ void pattern_breathe();
 void pattern_weave();
 void pattern_switch();
 
-CRGB gColors[] = {
-    CRGB::Red,              // 0 = Red
-    CRGB::Blue,             // 1 = Blue
-    CHSV(228, 0xFF, 0xFF),  // 2 = Pink (MediumVioletRed?)
-    CRGB::Yellow,           // 3 = Yellow
-    CHSV(104, 170,  0xFF),  // 4 = Aquamarine
-    CRGB::Purple,           // 5 = ???
-    CRGB::Lime,             // 6 = ???
-    CRGB::White * .6,       // 7 = White
-};
-
-// List of patterns to cycle through.  Each is defined as a separate function below.
 typedef void (*SimplePatternList[])();
 SimplePatternList gPatterns = {
     pattern_solid,
@@ -77,10 +46,23 @@ SimplePatternList gPatterns = {
     pattern_rainbow
 };
 
+/** Colors **/
+typedef CRGB SimpleColorList[];
+SimpleColorList gColors = {
+    CRGB::Red,              // 0 = Red
+    CRGB::Blue,             // 1 = Blue
+    CHSV(228, 0xFF, 0xFF),  // 2 = Pink (MediumVioletRed?)
+    CRGB::Yellow,           // 3 = Yellow
+    CHSV(104, 170,  0xFF),  // 4 = Aquamarine
+    CRGB::Purple,           // 5 = ???
+    CRGB::Lime,             // 6 = ???
+    CRGB::White * .6,       // 7 = White
+};
+
 uint8_t gCurrentColorNumber = 0;    // Index number of which color is current
 uint8_t gCurrentPatternNumber = 0;  // Index number of which pattern is current
 uint8_t gHue = 0;                   // rotating "base color" used by many of the patterns
-uint8_t last_state = 0;             // input buttons state
+uint8_t gLastState = 0;             // input buttons state
 
 /******************************************************************************/
 /*                                                                            */
@@ -92,11 +74,7 @@ void setup()
     //delay(3000); // 3 second delay for recovery
 
     // tell FastLED about the LED strip configuration
-#ifdef LED_HACK
-    FastLED.addLeds<LED_TYPE,DATA_PIN,COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
-#else
     FastLED.addLeds<LED_TYPE,DATA_PIN,CLK_PIN,COLOR_ORDER>(leds, NUM_LEDS).setCorrection(UncorrectedColor);
-#endif
 
     // set master brightness control
     FastLED.setBrightness(BRIGHTNESS);
@@ -144,7 +122,7 @@ static inline void nextPattern()
 static inline void readButtons()
 {
     // read the analog in value:
-    uint16_t sensorValue = analogRead(A1);
+    uint16_t sensorValue = analogRead(BTN_PIN);
 
     uint8_t new_state = 0xFF;
     if (sensorValue > 1013)
@@ -160,7 +138,7 @@ static inline void readButtons()
         new_state = 2;
     }
 
-    if (new_state != 0xFF && new_state != last_state)
+    if (new_state != 0xFF && new_state != gLastState)
     {
         if (new_state == 1)
         {
@@ -170,7 +148,7 @@ static inline void readButtons()
         {
             nextPattern();
         }
-        last_state = new_state;
+        gLastState = new_state;
     }
 }
 
