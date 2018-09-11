@@ -47,8 +47,7 @@ void pattern_breathe();
 void pattern_weave();
 void pattern_switch();
 
-typedef void (*SimplePatternList[])();
-SimplePatternList gPatterns = {
+void (*gPatterns[])() = {
     pattern_solid,          // 0 = solid color
     pattern_breathe,        // 1 = breathing pattern (cubic wave)
     pattern_flash_slow,     // 2 = flash, slowly
@@ -60,8 +59,7 @@ SimplePatternList gPatterns = {
 };
 
 /** Colors **/
-typedef CRGB SimpleColorList[];
-SimpleColorList gColors = {
+CRGB gColors[] = {
     CRGB::Red,              // 0 = Red
     CRGB::Blue,             // 1 = Blue
     CHSV(228, 0xFF, 0xFF),  // 2 = Pink (MediumVioletRed?)
