@@ -64,12 +64,12 @@ void (*gPatterns[])() = {
 CRGB gColors[] = {
     CRGB::Red,              // 0 = Red
     CRGB::Blue,             // 1 = Blue
-    CHSV(228, 0xFF, 0xFF),  // 2 = Pink (MediumVioletRed?)
+    CRGB::Purple,           // 2 = Pink
     CRGB::Yellow,           // 3 = Yellow
-    CHSV(104, 170,  0xFF),  // 4 = Aquamarine
-    CRGB::Purple,           // 5 = ???
-    CRGB::Lime,             // 6 = ???
-    CRGB::White * .6,       // 7 = White
+    CHSV(104, 170, 0xFF),   // 4 = Aquamarine
+    CHSV(149, 170, 0xFF),   // 5 = Alice Blue
+    CRGB::Lime,             // 6 = Lime
+    CRGB::White,            // 7 = White
 };
 
 /** Current state **/
