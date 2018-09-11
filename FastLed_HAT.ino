@@ -34,6 +34,8 @@ FASTLED_USING_NAMESPACE
 #define BRIGHTNESS          0xFF
 #define FRAMES_PER_SECOND   120
 
+#define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
+
 /** LEDs **/
 CRGB leds[NUM_LEDS];
 
@@ -45,6 +47,7 @@ void pattern_flash_fast();
 void pattern_breathe();
 void pattern_weave();
 void pattern_switch();
+void pattern_gradient();
 
 void (*gPatterns[])() = {
     pattern_solid,          // 0 = solid color
@@ -53,7 +56,7 @@ void (*gPatterns[])() = {
     pattern_flash_fast,     // 3 = flash, faster
     pattern_weave,          // 4 = alternate between two hues (2 x cubic wave, antiphase)
     pattern_switch,         // 5 = alternate between two hues, flashing from one to the next
-    pattern_rainbow,        // 6 = ???
+    pattern_gradient,       // 6 = gradient
     pattern_rainbow         // 7 = rainbooowww ♥️🌈
 };
 
@@ -125,7 +128,6 @@ void loop()
 /*                                 BUTTONS                                    */
 /*                                                                            */
 /******************************************************************************/
-#define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
 static inline void nextColor()
 {
     // add one to the current color number, and wrap around at the end
@@ -254,4 +256,29 @@ void pattern_weave()
 void pattern_switch()
 {
     leds[LED1] = leds[LED2] = (gState.hue & 0x80) ? gColors[gState.color] : gColors[(gState.color + 1) % ARRAY_SIZE(gColors)];
+}
+
+void pattern_gradient()
+{
+    CRGB startcolor = gColors[gState.color];
+    CRGB endcolor = gColors[(gState.color + 1) % ARRAY_SIZE(gColors)];
+
+    int16_t deltas[3];
+    int16_t rd, gd, bd;
+    
+    deltas[0] = endcolor.r - startcolor.r;
+    deltas[1] = endcolor.g - startcolor.g;
+    deltas[2] = endcolor.b - startcolor.b;
+
+    uint8_t i0 = cubicwave8(gState.hue);
+    rd = i0 * deltas[0];
+    gd = i0 * deltas[1];
+    bd = i0 * deltas[2];
+    leds[LED1] = CRGB(startcolor.r + (rd >> 8), startcolor.g + (gd >> 8), startcolor.b + (bd >> 8));
+
+    uint8_t i1 = cubicwave8(gState.hue + 0xFF/4);
+    rd = i1 * deltas[0];
+    gd = i1 * deltas[1];
+    bd = i1 * deltas[2];
+    leds[LED2] = CRGB(startcolor.r + (rd >> 8), startcolor.g + (gd >> 8), startcolor.b + (bd >> 8));
 }
