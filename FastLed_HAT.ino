@@ -1,7 +1,6 @@
 #include <FastLED.h>
 
 FASTLED_USING_NAMESPACE
-
 #if defined(FASTLED_VERSION) && (FASTLED_VERSION < 3001000)
 #warning "Requires FastLED 3.1 or later; check github for latest code."
 #endif
@@ -72,8 +71,8 @@ CRGB gColors[] = {
 
 /** Current state **/
 struct {
-    uint8_t color   = 0;    // index number of which color is current
     uint8_t pattern = 0;    // index number of which pattern is current
+    uint8_t color   = 0;    // index number of which color is current
     uint8_t hue     = 0;    // rotating "base color" used by many of the patterns
     uint8_t buttons = 0;    // input buttons state
 } gState;
@@ -121,10 +120,15 @@ void loop()
     }
 }
 
+/******************************************************************************/
+/*                                                                            */
+/*                                 BUTTONS                                    */
+/*                                                                            */
+/******************************************************************************/
 #define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
 static inline void nextColor()
 {
-    // add one to the current pattern number, and wrap around at the end
+    // add one to the current color number, and wrap around at the end
     gState.color = (gState.color + 1) % ARRAY_SIZE(gColors);
 }
 
@@ -178,6 +182,7 @@ static inline void readButtons()
     // read the analog in value:
     uint16_t sensorValue = analogRead(BTN_PIN);
 
+    // determine the button pressed (or lack thereof)
     uint8_t new_state = 0xFF;
     if (sensorValue > 1013) // Nominally, 0x3FF (1023)
     {
@@ -192,6 +197,7 @@ static inline void readButtons()
         new_state = 2;
     }
 
+    // is it a new state? then, react accordingly.
     if (new_state != 0xFF && new_state != gState.buttons)
     {
         if (new_state == 1)
