@@ -132,12 +132,14 @@ static inline void nextColor()
 {
     // add one to the current color number, and wrap around at the end
     gState.color = (gState.color + 1) % ARRAY_SIZE(gColors);
+    gState.hue = 0;
 }
 
 static inline void nextPattern()
 {
     // add one to the current pattern number, and wrap around at the end
     gState.pattern = (gState.pattern + 1) % ARRAY_SIZE(gPatterns);
+    gState.hue = 0;
 }
 
 /**
@@ -232,12 +234,12 @@ void pattern_solid()
 
 void pattern_flash_slow()
 {
-    leds[LED1] = leds[LED2] = (gState.hue & 0x80) ? gColors[gState.color] : (CRGB) 0;
+    leds[LED1] = leds[LED2] = (gState.hue & 0x80) ? (CRGB) 0: gColors[gState.color];
 }
 
 void pattern_flash_fast()
 {
-    leds[LED1] = leds[LED2] = (gState.hue & 0x10) ? gColors[gState.color] : (CRGB) 0;
+    leds[LED1] = leds[LED2] = (gState.hue & 0x10) ? (CRGB) 0 : gColors[gState.color];
 }
 
 void pattern_breathe()
@@ -257,7 +259,7 @@ void pattern_weave()
 
 void pattern_switch()
 {
-    leds[LED1] = leds[LED2] = (gState.hue & 0x80) ? gColors[gState.color] : gColors[(gState.color + 1) % ARRAY_SIZE(gColors)];
+    leds[LED1] = leds[LED2] = (gState.hue & 0x80) ? gColors[(gState.color + 1) % ARRAY_SIZE(gColors)] : gColors[gState.color];
 }
 
 void pattern_gradient()
