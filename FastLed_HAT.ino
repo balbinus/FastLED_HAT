@@ -12,7 +12,7 @@ FASTLED_USING_NAMESPACE
  *  – D1 = APA102 LED DATA
  *          (+ D1 LED on board, hence the use for data i/o clock,
  *          because at startup time the pin is used for PWM, which
- *           is then interpreted as a stream of ones by the LEDs…)
+ *          is then interpreted as a stream of ones by the LEDs…)
  *  – D2/A1 = ADC IN for the two buttons (see below).
  *  – GND connects to the LEDs, and the buttons.
  *  – 3VOUT connects to the LEDs, and through a same-value resistor,
@@ -66,8 +66,8 @@ const CRGB gColors[8] = {
     CRGB::Blue,             // 1 = Blue
     CRGB::Purple,           // 2 = Pink
     CRGB::Yellow,           // 3 = Yellow
-    (CRGB) 0x1CB82A,        // 4 = Aquamarine, CHSV(104, 170, 0xFF)
-    (CRGB) 0x1C439F,        // 5 = Alice Blue, CHSV(149, 170, 0xFF)
+   (CRGB) 0x1CB82A,         // 4 = Aquamarine, CHSV(104, 170, 0xFF)
+   (CRGB) 0x1C439F,         // 5 = Alice Blue, CHSV(149, 170, 0xFF)
     CRGB::Lime,             // 6 = Lime
     CRGB::White,            // 7 = White
 };
@@ -270,6 +270,8 @@ void pattern_gradient()
     int16_t deltas[3];
     int16_t rd, gd, bd;
     
+    // we can get away with simply computing the difference, because we want
+    // 256 steps, and we're shifting up & down by 8 bits already.
     deltas[0] = endcolor.r - startcolor.r;
     deltas[1] = endcolor.g - startcolor.g;
     deltas[2] = endcolor.b - startcolor.b;
