@@ -49,7 +49,7 @@ void pattern_weave();
 void pattern_switch();
 void pattern_gradient();
 
-void (*gPatterns[])() = {
+void (*gPatterns[8])() = {
     pattern_solid,          // 0 = solid color
     pattern_breathe,        // 1 = breathing pattern (cubic wave)
     pattern_flash_slow,     // 2 = flash, slowly
@@ -61,13 +61,13 @@ void (*gPatterns[])() = {
 };
 
 /** Colors **/
-CRGB gColors[] = {
+const CRGB gColors[8] = {
     CRGB::Red,              // 0 = Red
     CRGB::Blue,             // 1 = Blue
     CRGB::Purple,           // 2 = Pink
     CRGB::Yellow,           // 3 = Yellow
-    CHSV(104, 170, 0xFF),   // 4 = Aquamarine
-    CHSV(149, 170, 0xFF),   // 5 = Alice Blue
+    (CRGB) 0x1CB82A,        // 4 = Aquamarine, CHSV(104, 170, 0xFF)
+    (CRGB) 0x1C439F,        // 5 = Alice Blue, CHSV(149, 170, 0xFF)
     CRGB::Lime,             // 6 = Lime
     CRGB::White,            // 7 = White
 };
