@@ -249,8 +249,10 @@ void pattern_breathe()
 
 void pattern_weave()
 {
-    leds[LED1] = gColors[gState.color].nscale8(cubicwave8(gState.hue));
-    leds[LED2] = gColors[(gState.color + 1) % ARRAY_SIZE(gColors)].nscale8(cubicwave8(gState.hue + 0xFF/2));
+    leds[LED1] = gColors[gState.color];
+    leds[LED2] = gColors[(gState.color + 1) % ARRAY_SIZE(gColors)];
+    leds[LED1].nscale8(cubicwave8(gState.hue));
+    leds[LED2].nscale8(cubicwave8(gState.hue + 0xFF/2));
 }
 
 void pattern_switch()
