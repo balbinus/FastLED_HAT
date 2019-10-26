@@ -18,18 +18,14 @@ FASTLED_USING_NAMESPACE
  *  – 3VOUT connects to the LEDs, and through a same-value resistor,
  *          to D2/A1.
  */
-#if defined(ARDUINO_GEMMA_M0) or defined(ARDUINO_TRINKET_M0)
+#if defined(ARDUINO_AVR_GEMMA) or defined(ARDUINO_TRINKET_M0)
     #define DATA_PIN        0
-    #define CLK_PIN         0
     #define BTN_PIN         A1
 #else
     #error NO DATA PIN
 #endif
 #define LED_TYPE            WS2812B
 #define COLOR_ORDER         RGB
-#define NUM_LEDS            2
-#define LED1                0
-#define LED2                1
 
 #define BRIGHTNESS          0xFF
 #define FRAMES_PER_SECOND   120
@@ -37,7 +33,12 @@ FASTLED_USING_NAMESPACE
 #define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
 
 /** LEDs **/
-CRGB leds[NUM_LEDS];
+#define NUM_LEDS_RGB        10
+#define NUM_LEDS_RGBW        7
+#define NUM_LEDS            NUM_LEDS_RGBW
+
+CRGB leds_rgb[NUM_LEDS_RGB];
+CRGB leds[NUM_LEDS_RGBW];
 
 /** Patterns **/
 void pattern_rainbow();
@@ -48,7 +49,6 @@ void pattern_breathe();
 void pattern_weave();
 void pattern_switch();
 void pattern_switch_fast();
-void pattern_gradient();
 
 void (*gPatterns[8])() = {
     pattern_solid,          // 0 = solid color
@@ -81,6 +81,18 @@ struct {
     uint8_t buttons = 0;    // input buttons state
 } gState;
 
+/** Convert from RGB to RGBW (8 bit version) **/
+static inline void rgb_to_rgbw()
+{
+    uint8_t *lrgb8 = (uint8_t *) leds_rgb;
+    for (uint8_t i = 0 ; i < NUM_LEDS_RGBW ; i++)
+    {
+      lrgb8[i*4+0] = leds[i].g;
+      lrgb8[i*4+1] = leds[i].r;
+      lrgb8[i*4+2] = leds[i].b;
+    }
+}
+
 /******************************************************************************/
 /*                                                                            */
 /*                                 SETUP                                      */
@@ -91,7 +103,7 @@ void setup()
     //delay(3000); // 3 second delay for recovery
 
     // tell FastLED about the LED strip configuration
-    FastLED.addLeds<LED_TYPE,DATA_PIN/*,CLK_PIN*/,COLOR_ORDER>(leds, NUM_LEDS).setCorrection(UncorrectedColor);
+    FastLED.addLeds<LED_TYPE,DATA_PIN,COLOR_ORDER>(leds_rgb, NUM_LEDS_RGB).setCorrection(UncorrectedColor);
 
     // set master brightness control
     FastLED.setBrightness(BRIGHTNESS);
@@ -108,6 +120,7 @@ void loop()
     gPatterns[gState.pattern]();
 
     // send the 'leds' array out to the actual LED strip
+    rgb_to_rgbw();
     FastLED.show();
     
     // insert a delay to keep the framerate modest
@@ -224,73 +237,52 @@ static inline void readButtons()
 /******************************************************************************/
 void pattern_rainbow()
 {
-    leds[LED1] = CHSV(gState.hue, 0xFF, 0xFF);
-    leds[LED2] = CHSV(gState.hue + 0xFF/4, 0xFF, 0xFF);
+    fill_rainbow(leds, NUM_LEDS, gState.hue, 15);
 }
 
 void pattern_solid()
 {
-    leds[LED1] = leds[LED2] = gColors[gState.color];
+    fill_solid(leds, NUM_LEDS, gColors[gState.color]);
 }
 
 void pattern_flash_slow()
 {
-    leds[LED1] = leds[LED2] = (gState.hue & 0x80) ? (CRGB) 0: gColors[gState.color];
+    fill_solid(leds, NUM_LEDS, (gState.hue & 0x80) ? (CRGB) 0: gColors[gState.color]);
 }
 
 void pattern_flash_fast()
 {
-    leds[LED1] = leds[LED2] = (gState.hue & 0x10) ? (CRGB) 0 : gColors[gState.color];
+    fill_solid(leds, NUM_LEDS, (gState.hue & 0x10) ? (CRGB) 0: gColors[gState.color]);
 }
 
 void pattern_breathe()
 {
-    leds[LED1] = gColors[gState.color];
-    leds[LED1].nscale8_video(cubicwave8(gState.hue));
-    leds[LED2] = leds[LED1];
+    fill_solid(leds, NUM_LEDS, gColors[gState.color]);
+    nscale8_video(leds, NUM_LEDS, cubicwave8(gState.hue));
 }
 
 void pattern_weave()
 {
-    leds[LED1] = gColors[gState.color];
-    leds[LED2] = gColors[(gState.color + 1) % ARRAY_SIZE(gColors)];
-    leds[LED1].nscale8(cubicwave8(gState.hue));
-    leds[LED2].nscale8(cubicwave8(gState.hue + 0xFF/2));
+    CRGB start = gColors[gState.color];
+    CRGB end = gColors[(gState.color + 1) % ARRAY_SIZE(gColors)];
+    CRGB start2 = blend(start, end, cubicwave8(gState.hue));
+    CRGB end2 = blend(start, end, cubicwave8(gState.hue + 0xFF/4));
+    fill_gradient_RGB(leds, NUM_LEDS, start2, end2);
 }
 
 void pattern_switch()
 {
-    leds[LED1] = leds[LED2] = (gState.hue & 0x80) ? gColors[(gState.color + 1) % ARRAY_SIZE(gColors)] : gColors[gState.color];
+    for (uint8_t i = 0 ; i < NUM_LEDS ; i++)
+    {
+        leds[i] = (gState.hue & 0x80) ? gColors[(gState.color + 1) % ARRAY_SIZE(gColors)] : gColors[gState.color];
+    }
 }
 
 void pattern_switch_fast()
 {
-    leds[LED1] = leds[LED2] = (gState.hue & 0x10) ? gColors[(gState.color + 1) % ARRAY_SIZE(gColors)] : gColors[gState.color];
+    for (uint8_t i = 0 ; i < NUM_LEDS ; i++)
+    {
+        leds[i] = (gState.hue & 0x10) ? gColors[(gState.color + 1) % ARRAY_SIZE(gColors)] : gColors[gState.color];
+    }
 }
 
-void pattern_gradient()
-{
-    CRGB startcolor = gColors[gState.color];
-    CRGB endcolor = gColors[(gState.color + 1) % ARRAY_SIZE(gColors)];
-
-    int16_t deltas[3];
-    int16_t rd, gd, bd;
-    
-    // we can get away with simply computing the difference, because we want
-    // 256 steps, and we're shifting up & down by 8 bits already.
-    deltas[0] = endcolor.r - startcolor.r;
-    deltas[1] = endcolor.g - startcolor.g;
-    deltas[2] = endcolor.b - startcolor.b;
-
-    uint8_t i0 = cubicwave8(gState.hue);
-    rd = i0 * deltas[0];
-    gd = i0 * deltas[1];
-    bd = i0 * deltas[2];
-    leds[LED1] = CRGB(startcolor.r + (rd >> 8), startcolor.g + (gd >> 8), startcolor.b + (bd >> 8));
-
-    uint8_t i1 = cubicwave8(gState.hue + 0xFF/4);
-    rd = i1 * deltas[0];
-    gd = i1 * deltas[1];
-    bd = i1 * deltas[2];
-    leds[LED2] = CRGB(startcolor.r + (rd >> 8), startcolor.g + (gd >> 8), startcolor.b + (bd >> 8));
-}
