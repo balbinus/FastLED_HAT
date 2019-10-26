@@ -18,15 +18,15 @@ FASTLED_USING_NAMESPACE
  *  – 3VOUT connects to the LEDs, and through a same-value resistor,
  *          to D2/A1.
  */
-#if defined(__AVR_ATtiny85__)
-    #define DATA_PIN        1
+#if defined(ARDUINO_GEMMA_M0) or defined(ARDUINO_TRINKET_M0)
+    #define DATA_PIN        0
     #define CLK_PIN         0
     #define BTN_PIN         A1
 #else
     #error NO DATA PIN
 #endif
-#define LED_TYPE            APA102
-#define COLOR_ORDER         BGR
+#define LED_TYPE            WS2812B
+#define COLOR_ORDER         RGB
 #define NUM_LEDS            2
 #define LED1                0
 #define LED2                1
@@ -47,6 +47,7 @@ void pattern_flash_fast();
 void pattern_breathe();
 void pattern_weave();
 void pattern_switch();
+void pattern_switch_fast();
 void pattern_gradient();
 
 void (*gPatterns[8])() = {
@@ -56,13 +57,12 @@ void (*gPatterns[8])() = {
     pattern_flash_fast,     // 3 = flash, faster
     pattern_weave,          // 4 = alternate between two hues (2 x cubic wave, antiphase)
     pattern_switch,         // 5 = alternate between two hues, flashing from one to the next
-    pattern_gradient,       // 6 = gradient
+    pattern_switch_fast,    // 6 = alternate between two hues, flashing from one to the next, faster.
     pattern_rainbow         // 7 = rainbooowww ♥️🌈
 };
 
 /** Colors **/
 const CRGB gColors[8] = {
-    CRGB::Red,              // 0 = Red
     CRGB::Blue,             // 1 = Blue
     CRGB::Purple,           // 2 = Pink
     CRGB::Yellow,           // 3 = Yellow
@@ -70,6 +70,7 @@ const CRGB gColors[8] = {
    (CRGB) 0x1C439F,         // 5 = Alice Blue, CHSV(149, 170, 0xFF)
     CRGB::Lime,             // 6 = Lime
     CRGB::White,            // 7 = White
+    CRGB::Red,              // 0 = Red
 };
 
 /** Current state **/
@@ -90,7 +91,7 @@ void setup()
     //delay(3000); // 3 second delay for recovery
 
     // tell FastLED about the LED strip configuration
-    FastLED.addLeds<LED_TYPE,DATA_PIN,CLK_PIN,COLOR_ORDER>(leds, NUM_LEDS).setCorrection(UncorrectedColor);
+    FastLED.addLeds<LED_TYPE,DATA_PIN/*,CLK_PIN*/,COLOR_ORDER>(leds, NUM_LEDS).setCorrection(UncorrectedColor);
 
     // set master brightness control
     FastLED.setBrightness(BRIGHTNESS);
@@ -260,6 +261,11 @@ void pattern_weave()
 void pattern_switch()
 {
     leds[LED1] = leds[LED2] = (gState.hue & 0x80) ? gColors[(gState.color + 1) % ARRAY_SIZE(gColors)] : gColors[gState.color];
+}
+
+void pattern_switch_fast()
+{
+    leds[LED1] = leds[LED2] = (gState.hue & 0x10) ? gColors[(gState.color + 1) % ARRAY_SIZE(gColors)] : gColors[gState.color];
 }
 
 void pattern_gradient()
