@@ -27,14 +27,15 @@ FASTLED_USING_NAMESPACE
 #define LED_TYPE            WS2812B
 #define COLOR_ORDER         RGB
 
-#define BRIGHTNESS          0xFF
+#define BRIGHTNESS          0xFF/4
 #define FRAMES_PER_SECOND   120
 
 #define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
 
 /** LEDs **/
-#define NUM_LEDS_RGB        10
-#define NUM_LEDS_RGBW        7
+#define NUM_LEDS_RGB        31
+#define NUM_LEDS_RGBW       (7+8)
+#define NUM_LEDS_RGBW_DUP   (8)
 #define NUM_LEDS            NUM_LEDS_RGBW
 
 CRGB leds_rgb[NUM_LEDS_RGB];
@@ -49,16 +50,18 @@ void pattern_breathe();
 void pattern_weave();
 void pattern_switch();
 void pattern_switch_fast();
+void pattern_none();
 
-void (*gPatterns[8])() = {
-    pattern_solid,          // 0 = solid color
-    pattern_breathe,        // 1 = breathing pattern (cubic wave)
-    pattern_flash_slow,     // 2 = flash, slowly
-    pattern_flash_fast,     // 3 = flash, faster
-    pattern_weave,          // 4 = alternate between two hues (2 x cubic wave, antiphase)
-    pattern_switch,         // 5 = alternate between two hues, flashing from one to the next
-    pattern_switch_fast,    // 6 = alternate between two hues, flashing from one to the next, faster.
-    pattern_rainbow         // 7 = rainbooowww ♥️🌈
+void (*gPatterns[9])() = {
+    pattern_rainbow,        // 0 = rainbooowww ♥️🌈
+    pattern_solid,          // 1 = solid color
+    pattern_breathe,        // 2 = breathing pattern (cubic wave)
+    pattern_flash_slow,     // 3 = flash, slowly
+    pattern_flash_fast,     // 4 = flash, faster
+    pattern_weave,          // 5 = alternate between two hues (2 x cubic wave, antiphase)
+    pattern_switch,         // 6 = alternate between two hues, flashing from one to the next
+    pattern_switch_fast,    // 7 = alternate between two hues, flashing from one to the next, faster.
+    pattern_none            // 8 = off
 };
 
 /** Colors **/
@@ -85,11 +88,17 @@ struct {
 static inline void rgb_to_rgbw()
 {
     uint8_t *lrgb8 = (uint8_t *) leds_rgb;
-    for (uint8_t i = 0 ; i < NUM_LEDS_RGBW ; i++)
+    for (uint8_t i = 1 ; i < NUM_LEDS_RGBW ; i++)
     {
-      lrgb8[i*4+0] = leds[i].g;
-      lrgb8[i*4+1] = leds[i].r;
-      lrgb8[i*4+2] = leds[i].b;
+        lrgb8[i*4+0] = leds[i].g;
+        lrgb8[i*4+1] = leds[i].r;
+        lrgb8[i*4+2] = leds[i].b;
+    }
+    for (uint8_t i = 0 ; i < NUM_LEDS_RGBW_DUP ; i++)
+    {
+        lrgb8[(NUM_LEDS_RGBW+NUM_LEDS_RGBW_DUP-i)*4+0] = leds[NUM_LEDS_RGBW-NUM_LEDS_RGBW_DUP+i].g;
+        lrgb8[(NUM_LEDS_RGBW+NUM_LEDS_RGBW_DUP-i)*4+1] = leds[NUM_LEDS_RGBW-NUM_LEDS_RGBW_DUP+i].r;
+        lrgb8[(NUM_LEDS_RGBW+NUM_LEDS_RGBW_DUP-i)*4+2] = leds[NUM_LEDS_RGBW-NUM_LEDS_RGBW_DUP+i].b;
     }
 }
 
@@ -237,7 +246,7 @@ static inline void readButtons()
 /******************************************************************************/
 void pattern_rainbow()
 {
-    fill_rainbow(leds, NUM_LEDS, gState.hue, 15);
+    fill_rainbow(leds, NUM_LEDS, (-gState.hue) << 2, 32);
 }
 
 void pattern_solid()
@@ -257,8 +266,18 @@ void pattern_flash_fast()
 
 void pattern_breathe()
 {
+    //*
     fill_solid(leds, NUM_LEDS, gColors[gState.color]);
     nscale8_video(leds, NUM_LEDS, cubicwave8(gState.hue));
+    //*/
+    /*
+    leds[0] = gColors[gState.color];
+    leds[0].nscale8_video(cubicwave8(gState.hue));   
+    for (uint8_t i = 1 ; i < NUM_LEDS ; i++)
+    {
+        leds[i] = leds[0];
+    }
+    //*/
 }
 
 void pattern_weave()
@@ -267,7 +286,7 @@ void pattern_weave()
     CRGB end = gColors[(gState.color + 1) % ARRAY_SIZE(gColors)];
     CRGB start2 = blend(start, end, cubicwave8(gState.hue));
     CRGB end2 = blend(start, end, cubicwave8(gState.hue + 0xFF/4));
-    fill_gradient_RGB(leds, NUM_LEDS, start2, end2);
+    fill_gradient_RGB(leds, NUM_LEDS, end2, start2);
 }
 
 void pattern_switch()
@@ -286,3 +305,7 @@ void pattern_switch_fast()
     }
 }
 
+void pattern_none()
+{
+    fill_solid(leds, NUM_LEDS, 0);
+}
