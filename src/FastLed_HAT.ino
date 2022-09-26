@@ -18,7 +18,7 @@ FASTLED_USING_NAMESPACE
  *  – 3VOUT connects to the LEDs, and through a same-value resistor,
  *          to D2/A1.
  */
-#if defined(ARDUINO_AVR_GEMMA) or defined(ARDUINO_TRINKET_M0)
+#if defined(ARDUINO_AVR_GEMMA) or defined(ARDUINO_TRINKET_M0) or defined(ARDUINO_GEMMA_M0) or defined(ARDUINO_AVR_ATTINYX5)
     #define DATA_PIN        0
     #define BTN_PIN         A1
 #else
@@ -99,50 +99,6 @@ static inline void rgb_to_rgbw()
         lrgb8[(NUM_LEDS_RGBW+NUM_LEDS_RGBW_DUP-i)*4+0] = leds[NUM_LEDS_RGBW-NUM_LEDS_RGBW_DUP+i].g;
         lrgb8[(NUM_LEDS_RGBW+NUM_LEDS_RGBW_DUP-i)*4+1] = leds[NUM_LEDS_RGBW-NUM_LEDS_RGBW_DUP+i].r;
         lrgb8[(NUM_LEDS_RGBW+NUM_LEDS_RGBW_DUP-i)*4+2] = leds[NUM_LEDS_RGBW-NUM_LEDS_RGBW_DUP+i].b;
-    }
-}
-
-/******************************************************************************/
-/*                                                                            */
-/*                                 SETUP                                      */
-/*                                                                            */
-/******************************************************************************/
-void setup()
-{
-    //delay(3000); // 3 second delay for recovery
-
-    // tell FastLED about the LED strip configuration
-    FastLED.addLeds<LED_TYPE,DATA_PIN,COLOR_ORDER>(leds_rgb, NUM_LEDS_RGB).setCorrection(UncorrectedColor);
-
-    // set master brightness control
-    FastLED.setBrightness(BRIGHTNESS);
-}
-
-/******************************************************************************/
-/*                                                                            */
-/*                                  LOOP                                      */
-/*                                                                            */
-/******************************************************************************/
-void loop()
-{
-    // Call the current pattern function once, updating the 'leds' array
-    gPatterns[gState.pattern]();
-
-    // send the 'leds' array out to the actual LED strip
-    rgb_to_rgbw();
-    FastLED.show();
-    
-    // insert a delay to keep the framerate modest
-    FastLED.delay(1000/FRAMES_PER_SECOND);
-
-    // do some periodic updates
-    EVERY_N_MILLISECONDS(10)
-    {
-        // slowly cycle the "base color" through the rainbow
-        gState.hue++;
-
-        // read the physical buttons
-        readButtons();
     }
 }
 
@@ -308,4 +264,48 @@ void pattern_switch_fast()
 void pattern_none()
 {
     fill_solid(leds, NUM_LEDS, 0);
+}
+
+/******************************************************************************/
+/*                                                                            */
+/*                                 SETUP                                      */
+/*                                                                            */
+/******************************************************************************/
+void setup()
+{
+    //delay(3000); // 3 second delay for recovery
+
+    // tell FastLED about the LED strip configuration
+    FastLED.addLeds<LED_TYPE,DATA_PIN,COLOR_ORDER>(leds_rgb, NUM_LEDS_RGB).setCorrection(UncorrectedColor);
+
+    // set master brightness control
+    FastLED.setBrightness(BRIGHTNESS);
+}
+
+/******************************************************************************/
+/*                                                                            */
+/*                                  LOOP                                      */
+/*                                                                            */
+/******************************************************************************/
+void loop()
+{
+    // Call the current pattern function once, updating the 'leds' array
+    gPatterns[gState.pattern]();
+
+    // send the 'leds' array out to the actual LED strip
+    rgb_to_rgbw();
+    FastLED.show();
+    
+    // insert a delay to keep the framerate modest
+    FastLED.delay(1000/FRAMES_PER_SECOND);
+
+    // do some periodic updates
+    EVERY_N_MILLISECONDS(10)
+    {
+        // slowly cycle the "base color" through the rainbow
+        gState.hue++;
+
+        // read the physical buttons
+        readButtons();
+    }
 }
